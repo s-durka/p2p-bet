@@ -37,4 +37,8 @@ pub mod p2p_bet {
             resolver_group, 
             deadline)
     }
+
+    pub fn accept_bet(ctx: Context<AcceptBet>, bet_index: u64) -> Result<()> {
+        accept_bet::handler(ctx, bet_index)
+    }
 }

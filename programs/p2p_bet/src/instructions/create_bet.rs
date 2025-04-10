@@ -9,6 +9,7 @@ use anchor_lang::system_program::{
 #[derive(Accounts)]
 #[instruction(
     bet_index: u64,
+    resolver_group: Vec<Pubkey>,
 )]
 pub struct CreateBet<'info> {
     #[account(mut)]
@@ -28,8 +29,7 @@ pub struct CreateBet<'info> {
     #[account(
         init,
         payer = creator,
-        // space = 8 + Bet::MAX_SIZE,
-        space = 8 + 12345, // TODO: Calculate the actual size of Bet
+        space = 8 + Bet::MIN_SIZE + 32 * resolver_group.len(), // TODO: Calculate the actual size of Bet
         seeds = [
             BET_SEED.as_bytes(),
             &bet_index.to_le_bytes()
@@ -44,10 +44,10 @@ pub struct CreateBet<'info> {
 pub fn handler(
     ctx: Context<CreateBet>,
     bet_index: u64,
+    resolver_group: Vec<Pubkey>,
     creator_stake: u64,
     expected_challenger_stake: u64,
     challenger: Pubkey,
-    resolver_group: Vec<Pubkey>,
     deadline: i64,
 
 ) -> Result<()> {

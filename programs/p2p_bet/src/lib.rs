@@ -22,19 +22,19 @@ pub mod p2p_bet {
     pub fn create_bet(
                     ctx: Context<CreateBet>, 
                     bet_index: u64,
+                    resolver_group: Vec<Pubkey>,
                     creator_stake: u64,
                     expected_challenger_stake: u64,
                     challenger: Pubkey,
-                    resolver_group: Vec<Pubkey>,
                     deadline: i64,        
         ) -> Result<()> {
         create_bet::handler(
             ctx, 
             bet_index, 
+            resolver_group, 
             creator_stake, 
             expected_challenger_stake, 
             challenger, 
-            resolver_group, 
             deadline)
     }
 

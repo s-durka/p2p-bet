@@ -18,4 +18,23 @@ pub mod p2p_bet {
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         initialize::handler(ctx)
     }
+
+    pub fn create_bet(
+                    ctx: Context<CreateBet>, 
+                    bet_index: u64,
+                    creator_stake: u64,
+                    expected_challenger_stake: u64,
+                    challenger: Pubkey,
+                    resolver_group: Vec<Pubkey>,
+                    deadline: i64,        
+        ) -> Result<()> {
+        create_bet::handler(
+            ctx, 
+            bet_index, 
+            creator_stake, 
+            expected_challenger_stake, 
+            challenger, 
+            resolver_group, 
+            deadline)
+    }
 }

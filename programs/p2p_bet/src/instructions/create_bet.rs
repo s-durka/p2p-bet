@@ -1,5 +1,8 @@
 use anchor_lang::prelude::*;
-use crate::state::bet::Bet;
+use crate::state::{
+    bet::Bet,
+    voting_state::VotingState
+};
 use crate::constants::{BET_SEED, LOCKUP_SEED};
 use anchor_lang::system_program::{
     transfer,
@@ -8,7 +11,7 @@ use anchor_lang::system_program::{
 
 #[derive(Accounts)]
 #[instruction(
-    bet_index: u64,
+    _bet_index: u64,
     resolver_group: Vec<Pubkey>,
 )]
 pub struct CreateBet<'info> {
@@ -20,7 +23,7 @@ pub struct CreateBet<'info> {
         mut,
         seeds = [
             LOCKUP_SEED.as_bytes(),
-            &bet_index.to_le_bytes()
+            &_bet_index.to_le_bytes()
         ],
         bump
     )]
@@ -29,10 +32,10 @@ pub struct CreateBet<'info> {
     #[account(
         init,
         payer = creator,
-        space = 8 + Bet::MIN_SIZE + 32 * resolver_group.len(), // TODO: Calculate the actual size of Bet
+        space = Bet::size(resolver_group.len()), // TODO: Calculate the actual size of Bet
         seeds = [
             BET_SEED.as_bytes(),
-            &bet_index.to_le_bytes()
+            &_bet_index.to_le_bytes()
         ],
         bump
     )]
@@ -43,7 +46,7 @@ pub struct CreateBet<'info> {
 
 pub fn handler(
     ctx: Context<CreateBet>,
-    bet_index: u64,
+    _bet_index: u64,
     resolver_group: Vec<Pubkey>,
     creator_stake: u64,
     expected_challenger_stake: u64,
@@ -62,9 +65,13 @@ pub fn handler(
     bet.creator_stake = creator_stake;
     bet.challenger_stake = expected_challenger_stake; // expected challenger stake
     bet.resolved = false;
-    bet.winning_side = None;
     bet.deadline = deadline;
     bet.accepted = false;
+
+    bet.voting = VotingState {
+        resolver_votes: vec![None; bet.resolver_group.len()],
+        ..Default::default()
+    };
 
     // Transfer SOL into lockup PDA (escrow)
     transfer(

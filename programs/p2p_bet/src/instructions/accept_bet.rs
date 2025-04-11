@@ -8,7 +8,7 @@ use anchor_lang::system_program::{
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(bet_index: u64)]
+#[instruction(_bet_index: u64)]
 pub struct AcceptBet<'info> {
     #[account(mut)]
     pub challenger: Signer<'info>,
@@ -17,7 +17,7 @@ pub struct AcceptBet<'info> {
         mut,
         seeds = [
             LOCKUP_SEED.as_bytes(), 
-            &bet_index.to_le_bytes()
+            &_bet_index.to_le_bytes()
         ],
         bump
     )]
@@ -28,7 +28,7 @@ pub struct AcceptBet<'info> {
         mut,
         seeds = [
             BET_SEED.as_bytes(), 
-            &bet_index.to_le_bytes()
+            &_bet_index.to_le_bytes()
         ],
         bump
     )]
@@ -37,7 +37,7 @@ pub struct AcceptBet<'info> {
     pub system_program: Program<'info, System>,
 }
 
-pub fn handler(ctx: Context<AcceptBet>, bet_index: u64) -> Result<()> {
+pub fn handler(ctx: Context<AcceptBet>, _bet_index: u64) -> Result<()> {
     let bet = &mut ctx.accounts.bet;
     let challenger = &ctx.accounts.challenger;
     let lockup = &ctx.accounts.lockup;

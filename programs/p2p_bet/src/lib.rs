@@ -41,4 +41,12 @@ pub mod p2p_bet {
     pub fn accept_bet(ctx: Context<AcceptBet>, bet_index: u64) -> Result<()> {
         accept_bet::handler(ctx, bet_index)
     }
+
+    pub fn cast_player_vote(
+        ctx: Context<CastPlayerVote>,
+        bet_index: u64,
+        voted_winner: u8,
+    ) -> Result<()> {
+        cast_player_vote::handler(ctx, bet_index, voted_winner)
+    }
 }

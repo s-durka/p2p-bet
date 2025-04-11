@@ -108,4 +108,41 @@ describe("P2P Bet", () => {
     const betAccount = await program.account.bet.fetch(bet);
     expect(betAccount.accepted).to.eq(true);
   });
+
+  it("Players vote and resolve the bet", async () => {
+    const connection = program.provider.connection;
+
+    // Creator votes first: says creator wins (0)
+    await program.methods
+      .castPlayerVote(betIndex, 0)
+      .accounts({
+        signer: creator,
+        bet,
+      })
+      .rpc();
+
+    let betAccount = await program.account.bet.fetch(bet);
+    expect(betAccount.votingState.creatorVote).to.eq(0);
+    expect(betAccount.votingState.challengerVote).to.be.null;
+    expect(betAccount.votingState.resolved).to.be.false;
+
+    // Challenger votes the same: says creator wins (0)
+    await program.methods
+      .castPlayerVote(betIndex, 0)
+      .accounts({
+        signer: challenger.publicKey,
+        bet,
+      })
+      .signers([challenger])
+      .rpc();
+
+    // Fetch updated state
+    betAccount = await program.account.bet.fetch(bet);
+
+    expect(betAccount.votingState.creatorVote).to.eq(0);
+    expect(betAccount.votingState.challengerVote).to.eq(0);
+    expect(betAccount.votingState.resolved).to.eq(true);
+    expect(betAccount.votingState.winner).to.eq(0); // 0 = creator
+  });
+
 });

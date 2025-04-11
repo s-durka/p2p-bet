@@ -10,4 +10,11 @@ pub enum ErrorCode {
     WrongChallenger,
     #[msg("Bet has already been accepted")]
     BetAlreadyAccepted,
+
+    #[msg("Bet has not been accepted")]
+    BetNotAccepted,
+    #[msg("Invalid vote")]
+    InvalidVote,
+    #[msg("Account not authorized to vote")]
+    NotAuthorizedToVote,
 }

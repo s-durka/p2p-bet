@@ -49,4 +49,12 @@ pub mod p2p_bet {
     ) -> Result<()> {
         cast_player_vote::handler(ctx, bet_index, voted_winner)
     }
+
+    pub fn resolver_vote(
+        ctx: Context<ResolverVote>,
+        bet_index: u64,
+        voted_winner: u8,
+    ) -> Result<()> {
+        resolver_vote::handler(ctx, bet_index, voted_winner)
+    }
 }

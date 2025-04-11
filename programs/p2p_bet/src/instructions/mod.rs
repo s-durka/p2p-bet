@@ -9,3 +9,6 @@ pub use accept_bet::*;
 
 pub mod cast_player_vote;
 pub use cast_player_vote::*;
+
+pub mod resolver_vote;
+pub use resolver_vote::*;

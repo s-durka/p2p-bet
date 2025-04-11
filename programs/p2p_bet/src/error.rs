@@ -17,4 +17,7 @@ pub enum ErrorCode {
     InvalidVote,
     #[msg("Account not authorized to vote")]
     NotAuthorizedToVote,
+
+    #[msg("This account already voted")]
+    AlreadyVoted
 }

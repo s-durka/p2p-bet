@@ -145,4 +145,87 @@ describe("P2P Bet", () => {
     expect(betAccount.votingState.winner).to.eq(0); // 0 = creator
   });
 
+  it("Resolvers vote and resolve the bet with 2/3 majority", async () => {
+    const connection = program.provider.connection;
+  
+    // Create 3 resolvers and a new bet index
+    const r1 = resolver1;
+    const r2 = resolver2;
+    const r3 = Keypair.generate();
+    const newBetIndex = new BN(2);
+  
+    const [newBet] = PublicKey.findProgramAddressSync(
+      [Buffer.from("bet"), newBetIndex.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+  
+    const [newLockup] = PublicKey.findProgramAddressSync(
+      [Buffer.from("lockup"), newBetIndex.toArrayLike(Buffer, "le", 8)],
+      program.programId
+    );
+  
+    // Airdrop to challenger + resolvers
+    for (const kp of [challenger, r3]) {
+      const sig = await connection.requestAirdrop(kp.publicKey, 2* LAMPORTS_PER_SOL);
+      const blockhash = await connection.getLatestBlockhash();
+      await connection.confirmTransaction({ signature: sig, ...blockhash }, "confirmed");
+    }
+  
+    // Create bet with 3 resolvers
+    await program.methods
+      .createBet(
+        newBetIndex,
+        [r1.publicKey, r2.publicKey, r3.publicKey],
+        creatorStake,
+        challengerStake,
+        challenger.publicKey,
+        deadline
+      )
+      .accounts({
+        creator,
+        lockup: newLockup,
+        bet: newBet,
+        systemProgram: SystemProgram.programId,
+      })
+      .rpc();
+  
+    // Challenger accepts the bet
+    await program.methods
+      .acceptBet(newBetIndex)
+      .accounts({
+        challenger: challenger.publicKey,
+        lockup: newLockup,
+        bet: newBet,
+        systemProgram: SystemProgram.programId,
+      })
+      .signers([challenger])
+      .rpc();
+  
+    // First resolver votes for challenger (1)
+    await program.methods
+      .resolverVote(newBetIndex, 1)
+      .accounts({
+        signer: r1.publicKey,
+        bet: newBet,
+      })
+      .signers([r1])
+      .rpc();
+  
+    // Second resolver votes for challenger (1)
+    await program.methods
+      .resolverVote(newBetIndex, 1)
+      .accounts({
+        signer: r2.publicKey,
+        bet: newBet,
+      })
+      .signers([r2])
+      .rpc();
+  
+    // Fetch bet and assert that it's resolved
+    const betAccount = await program.account.bet.fetch(newBet);
+    expect(betAccount.votingState.resolved).to.eq(true);
+    expect(betAccount.votingState.winner).to.eq(1); // 1 = challenger
+  });
+  
+
 });

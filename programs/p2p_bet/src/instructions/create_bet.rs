@@ -64,7 +64,7 @@ pub fn handler(
     bet.resolver_group = resolver_group;
     bet.creator_stake = creator_stake;
     bet.challenger_stake = expected_challenger_stake; // expected challenger stake
-    bet.resolved = false;
+    bet.voting_state.resolved = false;
     bet.deadline = deadline;
     bet.accepted = false;
 

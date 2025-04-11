@@ -11,7 +11,6 @@ pub struct Bet {
     pub challenger_stake: u64, // 8 bytes
 
     pub accepted: bool,
-    pub resolved: bool,
     
     pub deadline: i64,               // UNIX timestamp
 

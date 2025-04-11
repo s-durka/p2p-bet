@@ -43,8 +43,8 @@ pub fn handler(ctx: Context<AcceptBet>, _bet_index: u64) -> Result<()> {
     let lockup = &ctx.accounts.lockup;
     let system_program = &ctx.accounts.system_program;
 
-    require!(!bet.resolved, ErrorCode::BetAlreadyResolved);
     require!(!bet.accepted, ErrorCode::BetAlreadyAccepted);
+    require!(!bet.voting_state.resolved, ErrorCode::BetAlreadyResolved);
     require!(bet.challenger == challenger.key(), ErrorCode::WrongChallenger);
 
     bet.accepted = true;

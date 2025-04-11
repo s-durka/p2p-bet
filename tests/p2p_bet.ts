@@ -59,7 +59,7 @@ describe("P2P Bet", () => {
     expect(betAccount.creatorStake.toNumber()).to.eq(creatorStake.toNumber());
     expect(betAccount.challengerStake.toNumber()).to.eq(challengerStake.toNumber());
     expect(betAccount.accepted).to.be.false;
-    expect(betAccount.voting.resolved).to.be.false;
+    expect(betAccount.votingState.resolved).to.be.false;
     expect(betAccount.deadline.toNumber()).to.eq(deadline.toNumber());
 
     expect(betAccount.resolverGroup.length).to.eq(2);

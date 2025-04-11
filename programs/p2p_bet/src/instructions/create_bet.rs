@@ -68,7 +68,7 @@ pub fn handler(
     bet.deadline = deadline;
     bet.accepted = false;
 
-    bet.voting = VotingState {
+    bet.voting_state = VotingState {
         resolver_votes: vec![None; bet.resolver_group.len()],
         ..Default::default()
     };

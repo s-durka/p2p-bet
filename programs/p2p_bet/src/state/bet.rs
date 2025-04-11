@@ -15,7 +15,7 @@ pub struct Bet {
     
     pub deadline: i64,               // UNIX timestamp
 
-    pub voting: VotingState,
+    pub voting_state: VotingState,
 }
 
 impl Bet {

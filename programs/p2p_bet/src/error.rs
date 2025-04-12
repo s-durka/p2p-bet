@@ -19,5 +19,12 @@ pub enum ErrorCode {
     NotAuthorizedToVote,
 
     #[msg("This account already voted")]
-    AlreadyVoted
+    AlreadyVoted,
+    #[msg("Bet not resolved")]
+    BetNotResolved,
+
+    #[msg("Invalid winner account")]
+    InvalidWinnerAccount,
+    #[msg("Invalid creator account")]
+    InvalidCreatorAccount,
 }

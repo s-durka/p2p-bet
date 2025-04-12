@@ -57,4 +57,8 @@ pub mod p2p_bet {
     ) -> Result<()> {
         resolver_vote::handler(ctx, bet_index, voted_winner)
     }
+
+    pub fn claim_winnings(ctx: Context<ClaimWinnings>, bet_index: u64) -> Result<()> {
+        claim_winnings::handler(ctx, bet_index)
+    }
 }

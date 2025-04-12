@@ -15,25 +15,25 @@ describe("P2P Bet", () => {
   const resolver1 = Keypair.generate();
   const resolver2 = Keypair.generate();
 
-  const betIndex = new BN(0);
+  const newBetIndex = new BN(0);
   const creatorStake = new BN(1 * LAMPORTS_PER_SOL);
   const challengerStake = new BN(1.3 * LAMPORTS_PER_SOL);
   const deadline = new BN(Math.floor(Date.now() / 1000) + 86400);
 
   const [bet] = PublicKey.findProgramAddressSync(
-    [Buffer.from("bet"), betIndex.toArrayLike(Buffer, "le", 8)],
+    [Buffer.from("bet"), newBetIndex.toArrayLike(Buffer, "le", 8)],
     program.programId
   );
 
-  const [lockup] = PublicKey.findProgramAddressSync(
-    [Buffer.from("lockup"), betIndex.toArrayLike(Buffer, "le", 8)],
+  const [newLockup] = PublicKey.findProgramAddressSync(
+    [Buffer.from("lockup"), newBetIndex.toArrayLike(Buffer, "le", 8)],
     program.programId
   );
 
   it("Creates bet", async () => {
     await program.methods
       .createBet(
-        betIndex,
+        newBetIndex,
         [resolver1.publicKey, resolver2.publicKey],
         creatorStake,
         challengerStake,
@@ -42,13 +42,13 @@ describe("P2P Bet", () => {
       )
       .accounts({
         creator,
-        lockup,
+        lockup: newLockup,
         bet,
         systemProgram: SystemProgram.programId
       })
       .rpc();
 
-    const lockupBalance = await program.provider.connection.getBalance(lockup);
+    const lockupBalance = await program.provider.connection.getBalance(newLockup);
     expect(lockupBalance).to.eq(creatorStake.toNumber());
     console.log("lockup balance after creating bet = ", lockupBalance);
 
@@ -86,21 +86,21 @@ describe("P2P Bet", () => {
     expect(challengerBalance).to.be.eq(challengerStake.toNumber());
     
 
-    const lockupBalanceBefore = await connection.getBalance(lockup);
+    const lockupBalanceBefore = await connection.getBalance(newLockup);
     expect(lockupBalanceBefore).to.eq(creatorStake.toNumber());
 
     await program.methods
-      .acceptBet(betIndex)
+      .acceptBet(newBetIndex)
       .accounts({
         challenger: challenger.publicKey,
-        lockup,
+        lockup: newLockup,
         bet,
         systemProgram: SystemProgram.programId
       })
       .signers([challenger])
       .rpc();
 
-    const lockupBalanceAfter = await connection.getBalance(lockup);
+    const lockupBalanceAfter = await connection.getBalance(newLockup);
     const expectedTotal = creatorStake.add(challengerStake).toNumber();
     expect(lockupBalanceAfter).to.eq(expectedTotal);
     console.log("lockup balance after accepting bet = ", lockupBalanceAfter);
@@ -114,7 +114,7 @@ describe("P2P Bet", () => {
 
     // Creator votes first: says creator wins (0)
     await program.methods
-      .castPlayerVote(betIndex, 0)
+      .castPlayerVote(newBetIndex, 0)
       .accounts({
         signer: creator,
         bet,
@@ -128,7 +128,7 @@ describe("P2P Bet", () => {
 
     // Challenger votes the same: says creator wins (0)
     await program.methods
-      .castPlayerVote(betIndex, 0)
+      .castPlayerVote(newBetIndex, 0)
       .accounts({
         signer: challenger.publicKey,
         bet,
@@ -145,15 +145,9 @@ describe("P2P Bet", () => {
     expect(betAccount.votingState.winner).to.eq(0); // 0 = creator
   });
 
-  it("Resolvers vote and resolve the bet with 2/3 majority", async () => {
-    const connection = program.provider.connection;
-  
-    // Create 3 resolvers and a new bet index
-    const r1 = resolver1;
-    const r2 = resolver2;
-    const r3 = Keypair.generate();
+  {
     const newBetIndex = new BN(2);
-  
+
     const [newBet] = PublicKey.findProgramAddressSync(
       [Buffer.from("bet"), newBetIndex.toArrayLike(Buffer, "le", 8)],
       program.programId
@@ -163,69 +157,128 @@ describe("P2P Bet", () => {
       [Buffer.from("lockup"), newBetIndex.toArrayLike(Buffer, "le", 8)],
       program.programId
     );
+    
+    it("Resolvers vote and resolve the bet with 2/3 majority", async () => {
+      const connection = program.provider.connection;
+    
+      // Create 3 resolvers and a new bet index
+      const r1 = resolver1;
+      const r2 = resolver2;
+      const r3 = Keypair.generate();
+    
+
+    
+      // Airdrop to challenger + resolvers
+      for (const kp of [challenger, r3]) {
+        const sig = await connection.requestAirdrop(kp.publicKey, 2* LAMPORTS_PER_SOL);
+        const blockhash = await connection.getLatestBlockhash();
+        await connection.confirmTransaction({ signature: sig, ...blockhash }, "confirmed");
+      }
+    
+      // Create bet with 3 resolvers
+      await program.methods
+        .createBet(
+          newBetIndex,
+          [r1.publicKey, r2.publicKey, r3.publicKey],
+          creatorStake,
+          challengerStake,
+          challenger.publicKey,
+          deadline
+        )
+        .accounts({
+          creator,
+          lockup: newLockup,
+          bet: newBet,
+          systemProgram: SystemProgram.programId,
+        })
+        .rpc();
+    
+      // Challenger accepts the bet
+      await program.methods
+        .acceptBet(newBetIndex)
+        .accounts({
+          challenger: challenger.publicKey,
+          lockup: newLockup,
+          bet: newBet,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([challenger])
+        .rpc();
+    
+      // First resolver votes for challenger (1)
+      await program.methods
+        .resolverVote(newBetIndex, 1)
+        .accounts({
+          signer: r1.publicKey,
+          bet: newBet,
+        })
+        .signers([r1])
+        .rpc();
+    
+      // Second resolver votes for challenger (1)
+      await program.methods
+        .resolverVote(newBetIndex, 1)
+        .accounts({
+          signer: r2.publicKey,
+          bet: newBet,
+        })
+        .signers([r2])
+        .rpc();
+    
+      // Fetch bet and assert that it's resolved
+      const betAccount = await program.account.bet.fetch(newBet);
+      expect(betAccount.votingState.resolved).to.eq(true);
+      expect(betAccount.votingState.winner).to.eq(1); // 1 = challenger
+    });
   
-    // Airdrop to challenger + resolvers
-    for (const kp of [challenger, r3]) {
-      const sig = await connection.requestAirdrop(kp.publicKey, 2* LAMPORTS_PER_SOL);
-      const blockhash = await connection.getLatestBlockhash();
-      await connection.confirmTransaction({ signature: sig, ...blockhash }, "confirmed");
-    }
+    it("Winner claims funds and creator receives rent refund", async () => {
+      const connection = program.provider.connection;
+      // Fetch balances before
+      const lockupBalanceBefore = await connection.getBalance(newLockup);
+      const creatorBalanceBefore = await connection.getBalance(creator);
+      const challengerBalanceBefore = await connection.getBalance(challenger.publicKey);
+    
+      expect(lockupBalanceBefore).to.eq(
+        creatorStake.add(challengerStake).toNumber()
+      );
   
-    // Create bet with 3 resolvers
-    await program.methods
-      .createBet(
-        newBetIndex,
-        [r1.publicKey, r2.publicKey, r3.publicKey],
-        creatorStake,
-        challengerStake,
-        challenger.publicKey,
-        deadline
-      )
-      .accounts({
-        creator,
-        lockup: newLockup,
-        bet: newBet,
-        systemProgram: SystemProgram.programId,
-      })
-      .rpc();
+      // Challenger calls claim_winnings
+      await program.methods
+        .claimWinnings(newBetIndex)
+        .accounts({
+          winner: challenger.publicKey,
+          bet: newBet,
+          lockup: newLockup,
+          creator: creator,
+          systemProgram: SystemProgram.programId,
+        })
+        .signers([challenger])
+        .rpc();
+    
+      // Confirm lockup is empty (should be closed)
+      const lockupBalanceAfter = await connection.getBalance(newLockup).catch(() => 0);
+      expect(lockupBalanceAfter).to.eq(0);
+    
+      // Challenger (winner) should have received the full pot
+      const challengerBalanceAfter = await connection.getBalance(challenger.publicKey);
+      expect(challengerBalanceAfter).to.be.greaterThan(challengerBalanceBefore);
+    
+      // Creator should have received the rent refund from the bet account
+      const creatorBalanceAfter = await connection.getBalance(creator);
+      expect(creatorBalanceAfter).to.be.greaterThan(creatorBalanceBefore);
+    
+      // Try fetching the bet account → should no longer exist
+      let betAccountGone = false;
+      try {
+        await program.account.bet.fetch(newBet);
+      } catch (e) {
+        betAccountGone = true;
+      }
+      expect(betAccountGone).to.eq(true);
+    });
+  }
+
   
-    // Challenger accepts the bet
-    await program.methods
-      .acceptBet(newBetIndex)
-      .accounts({
-        challenger: challenger.publicKey,
-        lockup: newLockup,
-        bet: newBet,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([challenger])
-      .rpc();
-  
-    // First resolver votes for challenger (1)
-    await program.methods
-      .resolverVote(newBetIndex, 1)
-      .accounts({
-        signer: r1.publicKey,
-        bet: newBet,
-      })
-      .signers([r1])
-      .rpc();
-  
-    // Second resolver votes for challenger (1)
-    await program.methods
-      .resolverVote(newBetIndex, 1)
-      .accounts({
-        signer: r2.publicKey,
-        bet: newBet,
-      })
-      .signers([r2])
-      .rpc();
-  
-    // Fetch bet and assert that it's resolved
-    const betAccount = await program.account.bet.fetch(newBet);
-    expect(betAccount.votingState.resolved).to.eq(true);
-    expect(betAccount.votingState.winner).to.eq(1); // 1 = challenger
-  });
   
 
 });

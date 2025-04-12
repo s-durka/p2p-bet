@@ -12,3 +12,6 @@ pub use cast_player_vote::*;
 
 pub mod resolver_vote;
 pub use resolver_vote::*;
+
+pub mod claim_winnings;
+pub use claim_winnings::*;

@@ -49,7 +49,6 @@ pub fn handler(ctx: Context<ClaimWinnings>, _bet_index: u64) -> Result<()> {
         bet.challenger
     };
 
-    require_eq!(winner, 1);
     require_keys_eq!(ctx.accounts.winner.key(), expected_winner, ErrorCode::InvalidWinnerAccount);
     require_keys_eq!(ctx.accounts.creator.key(), bet.creator, ErrorCode::InvalidCreatorAccount);
 

@@ -32,7 +32,7 @@ pub struct CreateBet<'info> {
     #[account(
         init,
         payer = creator,
-        space = Bet::size(resolver_group.len()), // TODO: Calculate the actual size of Bet
+        space = Bet::size(resolver_group.len()),
         seeds = [
             BET_SEED.as_bytes(),
             &_bet_index.to_le_bytes()
@@ -63,7 +63,7 @@ pub fn handler(
     bet.challenger = challenger;
     bet.resolver_group = resolver_group;
     bet.creator_stake = creator_stake;
-    bet.challenger_stake = expected_challenger_stake; // expected challenger stake
+    bet.challenger_stake = expected_challenger_stake;
     bet.voting_state.resolved = false;
     bet.deadline = deadline;
     bet.accepted = false;
@@ -73,7 +73,6 @@ pub fn handler(
         ..Default::default()
     };
 
-    // Transfer SOL into lockup PDA (escrow)
     transfer(
         CpiContext::new(
             system_program.to_account_info(),

@@ -19,6 +19,8 @@ pub struct ClaimWinnings<'info> {
         bump,
         close = creator,
         has_one = creator,
+        constraint = bet.voting_state.resolved == true,
+        constraint = bet.voting_state.winner.is_some(),
     )]
     pub bet: Account<'info, Bet>,
 
@@ -39,8 +41,6 @@ pub struct ClaimWinnings<'info> {
 
 pub fn handler(ctx: Context<ClaimWinnings>, _bet_index: u64) -> Result<()> {
     let bet = &ctx.accounts.bet;
-
-    require!(bet.voting_state.resolved, ErrorCode::BetNotResolved);
 
     let winner = bet.voting_state.winner.ok_or(ErrorCode::BetNotResolved)?;
 

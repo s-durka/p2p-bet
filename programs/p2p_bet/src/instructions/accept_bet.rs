@@ -5,7 +5,6 @@ use anchor_lang::system_program::{
     transfer,
     Transfer
 };
-use crate::error::ErrorCode;
 
 #[derive(Accounts)]
 #[instruction(_bet_index: u64)]
@@ -30,7 +29,10 @@ pub struct AcceptBet<'info> {
             BET_SEED.as_bytes(), 
             &_bet_index.to_le_bytes()
         ],
-        bump
+        bump,
+        constraint = bet.accepted == false,
+        constraint = bet.voting_state.resolved == false,
+        has_one = challenger,
     )]
     pub bet: Account<'info, Bet>,
 
@@ -42,10 +44,6 @@ pub fn handler(ctx: Context<AcceptBet>, _bet_index: u64) -> Result<()> {
     let challenger = &ctx.accounts.challenger;
     let lockup = &ctx.accounts.lockup;
     let system_program = &ctx.accounts.system_program;
-
-    require!(!bet.accepted, ErrorCode::BetAlreadyAccepted);
-    require!(!bet.voting_state.resolved, ErrorCode::BetAlreadyResolved);
-    require!(bet.challenger == challenger.key(), ErrorCode::WrongChallenger);
 
     bet.accepted = true;
 

@@ -4,7 +4,7 @@ use crate::constants::BET_SEED;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(_bet_index: u64)]
+#[instruction(_bet_index: u64, voted_winner: u8)]
 pub struct ResolverVote<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -12,7 +12,10 @@ pub struct ResolverVote<'info> {
     #[account(
         mut,
         seeds = [BET_SEED.as_bytes(), &_bet_index.to_le_bytes()],
-        bump
+        bump,
+        constraint = bet.accepted == true,
+        constraint = bet.voting_state.resolved == false,
+        constraint = voted_winner <= 1,
     )]
     pub bet: Account<'info, Bet>,
 }
@@ -24,10 +27,6 @@ pub fn handler(
 ) -> Result<()> {
     let signer = ctx.accounts.signer.key();
     let bet = &mut ctx.accounts.bet;
-
-    require!(bet.accepted, ErrorCode::BetNotAccepted);
-    require!(!bet.voting_state.resolved, ErrorCode::BetAlreadyResolved);
-    require!(voted_winner <= 1, ErrorCode::InvalidVote);
 
     // Find the resolver index
     let resolver_index = bet

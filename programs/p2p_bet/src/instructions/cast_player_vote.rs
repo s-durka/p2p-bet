@@ -4,7 +4,7 @@ use crate::constants::BET_SEED;
 use crate::error::ErrorCode;
 
 #[derive(Accounts)]
-#[instruction(_bet_index: u64)]
+#[instruction(_bet_index: u64, voted_winner: u8)]
 pub struct CastPlayerVote<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
@@ -12,7 +12,10 @@ pub struct CastPlayerVote<'info> {
     #[account(
         mut,
         seeds = [BET_SEED.as_bytes(), &_bet_index.to_le_bytes()],
-        bump
+        bump,
+        constraint = bet.accepted == true,
+        constraint = bet.voting_state.resolved == false,
+        constraint = voted_winner <= 1,
     )]
     pub bet: Account<'info, Bet>,
 }
@@ -28,12 +31,7 @@ pub fn handler(
     let creator = bet.creator;
     let challenger = bet.challenger;
     
-    require!(bet.accepted, ErrorCode::BetNotAccepted);
-    require!(voted_winner <= 1, ErrorCode::InvalidVote);
-    
     let voting_state = &mut bet.voting_state;
-
-    require!(!voting_state.resolved, ErrorCode::BetAlreadyResolved);
 
     // Record vote
     if signer == creator {

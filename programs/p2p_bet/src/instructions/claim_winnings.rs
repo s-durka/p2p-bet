@@ -18,6 +18,9 @@ pub struct ClaimWinnings<'info> {
         seeds = [BET_SEED.as_bytes(), &_bet_index.to_le_bytes()],
         bump,
         close = creator,
+        has_one = creator,
+        constraint = bet.voting_state.resolved == true,
+        constraint = bet.voting_state.winner.is_some(),
     )]
     pub bet: Account<'info, Bet>,
 
@@ -39,8 +42,6 @@ pub struct ClaimWinnings<'info> {
 pub fn handler(ctx: Context<ClaimWinnings>, _bet_index: u64) -> Result<()> {
     let bet = &ctx.accounts.bet;
 
-    require!(bet.voting_state.resolved, ErrorCode::BetNotResolved);
-
     let winner = bet.voting_state.winner.ok_or(ErrorCode::BetNotResolved)?;
 
     let expected_winner = if winner == 0 {
@@ -50,7 +51,6 @@ pub fn handler(ctx: Context<ClaimWinnings>, _bet_index: u64) -> Result<()> {
     };
 
     require_keys_eq!(ctx.accounts.winner.key(), expected_winner, ErrorCode::InvalidWinnerAccount);
-    require_keys_eq!(ctx.accounts.creator.key(), bet.creator, ErrorCode::InvalidCreatorAccount);
 
     let total = bet.creator_stake + bet.challenger_stake;
 

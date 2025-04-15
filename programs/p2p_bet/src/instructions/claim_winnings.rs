@@ -11,13 +11,13 @@ use crate::error::ErrorCode;
 #[instruction(_bet_index: u64)]
 pub struct ClaimWinnings<'info> {
     #[account(mut)]
-    pub winner: Signer<'info>, // the winner, claiming funds
+    pub winner: Signer<'info>,
 
     #[account(
         mut,
         seeds = [BET_SEED.as_bytes(), &_bet_index.to_le_bytes()],
         bump,
-        close = creator, // refund rent to creator
+        close = creator,
     )]
     pub bet: Account<'info, Bet>,
 
@@ -50,10 +50,7 @@ pub fn handler(ctx: Context<ClaimWinnings>, _bet_index: u64) -> Result<()> {
     };
 
     require_eq!(winner, 1);
-    // Check that winner_account matches who actually won
     require_keys_eq!(ctx.accounts.winner.key(), expected_winner, ErrorCode::InvalidWinnerAccount);
-
-    // Check creator_account is really the creator
     require_keys_eq!(ctx.accounts.creator.key(), bet.creator, ErrorCode::InvalidCreatorAccount);
 
     let total = bet.creator_stake + bet.challenger_stake;

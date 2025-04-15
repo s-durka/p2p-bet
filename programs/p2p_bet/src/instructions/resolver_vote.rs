@@ -12,7 +12,9 @@ pub struct ResolverVote<'info> {
     #[account(
         mut,
         seeds = [BET_SEED.as_bytes(), &_bet_index.to_le_bytes()],
-        bump
+        bump,
+        constraint = bet.accepted == true,
+        constraint = bet.voting_state.resolved == false,
     )]
     pub bet: Account<'info, Bet>,
 }
@@ -25,8 +27,6 @@ pub fn handler(
     let signer = ctx.accounts.signer.key();
     let bet = &mut ctx.accounts.bet;
 
-    require!(bet.accepted, ErrorCode::BetNotAccepted);
-    require!(!bet.voting_state.resolved, ErrorCode::BetAlreadyResolved);
     require!(voted_winner <= 1, ErrorCode::InvalidVote);
 
     // Find the resolver index
